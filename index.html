@@ -1,1 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfólio de Desenvolvedor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Fundo cinza escuro */
+            color: #E5E7EB; /* Texto cinza claro */
+        }
+        /* Canvas para o fundo de estrelas */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Coloca o canvas atrás de todo o conteúdo */
+        }
+        .tech-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin: 0 1rem; /* Espaçamento entre os cards no scroller */
+            flex-shrink: 0; /* Impede que os cards encolham */
+        }
+        .tech-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.2);
+        }
+        .project-card {
+             background-color: #1F2937; /* Fundo do card um pouco mais claro */
+             border: 1px solid #374151;
+             position: relative; /* Necessário para o overlay da galeria */
+        }
+
+        .project-card .project-image-container {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .project-card .gallery-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            font-size: 1.25rem;
+        }
+
+        .project-card:hover .gallery-overlay {
+            opacity: 1;
+        }
+
+        .battery {
+            border: 2px solid #818cf8;
+            border-radius: 8px;
+            padding: 4px;
+            width: 40px;
+            height: 70px;
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column-reverse;
+            justify-content: space-between;
+            box-shadow: 0 0 8px #818cf8, inset 0 0 4px rgba(129, 140, 248, 0.5);
+            position: relative;
+        }
+
+        .battery::before { /* O "polo" da bateria */
+            content: '';
+            position: absolute;
+            top: -7px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 4px;
+            background-color: #818cf8;
+            border-radius: 2px;
+        }
+
+        .battery-segment {
+            background-color: rgba(255, 255, 255, 0.1); /* Cor do segmento vazio */
+            height: 30%;
+            border-radius: 4px;
+            transition: background-color 0.4s ease;
+        }
+        
+        /* Nível 1: Vermelho (Iniciante) */
+        .battery[data-level='1'] {
+            border-color: #f87171;
+            box-shadow: 0 0 8px #f87171, inset 0 0 4px rgba(248, 113, 113, 0.5);
+        }
+        .battery[data-level='1']::before { background-color: #f87171; }
+        .battery[data-level='1'] .battery-segment:nth-child(1) {
+            background-color: #ef4444;
+            box-shadow: 0 0 6px #ef4444;
+        }
+
+        /* Nível 2: Amarelo (Intermediário) */
+        .battery[data-level='2'] {
+            border-color: #fbbf24;
+            box-shadow: 0 0 8px #fbbf24, inset 0 0 4px rgba(251, 191, 36, 0.5);
+        }
+        .battery[data-level='2']::before { background-color: #fbbf24; }
+        .battery[data-level='2'] .battery-segment:nth-child(-n+2) {
+            background-color: #f59e0b;
+            box-shadow: 0 0 6px #f59e0b;
+        }
+        
+        /* Nível 3: Verde (Avançado) */
+        .battery[data-level='3'] {
+            border-color: #4ade80;
+            box-shadow: 0 0 8px #4ade80, inset 0 0 4px rgba(74, 222, 128, 0.5);
+        }
+        .battery[data-level='3']::before { background-color: #4ade80; }
+        .battery[data-level='3'] .battery-segment:nth-child(-n+3) {
+            background-color: #22c55e;
+            box-shadow: 0 0 6px #22c55e;
+        }
+
+        /* Animação do scroller de tecnologias */
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            /* Anima metade da largura total, que corresponde ao conteúdo original para um loop perfeito */
+            100% { transform: translateX(-50%); }
+        }
+        .scroller {
+            max-width: 100%;
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(to right, transparent, white 20%, white 80%, transparent);
+            mask-image: linear-gradient(to right, transparent, white 20%, white 80%, transparent);
+        }
+        .scroller__inner {
+            display: flex;
+            flex-wrap: nowrap;
+            width: max-content;
+            /* A duração da animação pode ser ajustada (ex: 40s) */
+            animation: scroll 40s linear infinite;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Canvas para o fundo animado -->
+    <canvas id="starfield"></canvas>
+
+    <!-- Header & Hero Section -->
+    <header class="container mx-auto px-6 py-16 text-center relative z-10">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl md:text-6xl font-bold text-white leading-tight mb-4">
+                Olá, eu sou <span class="text-blue-400">[Jardel Feitosa]</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-300 mb-8">Buscando Oportunidade de Estágio</p>
+            <div class="flex justify-center space-x-6">
+                <a href="https://github.com/Dev-Jardel" target="_blank" class="text-gray-400 hover:text-white transition duration-300">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.168 6.839 9.492.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.031-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.378.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.338 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.001 10.001 0 0022 12c0-5.523-4.477-10-10-10z" clip-rule="evenodd" /></svg>
+                </a>
+                <a href="https://www.linkedin.com/in/jardel-feitosa96/" target="_blank" class="text-gray-400 hover:text-white transition duration-300">
+                     <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 relative z-10">
+        <!-- Seção Sobre Mim -->
+        <section id="sobre" class="py-16 text-center">
+             <div class="max-w-3xl mx-auto">
+                <h2 class="text-3xl font-bold text-center text-white mb-8">Sobre Mim</h2>
+                <p class="text-lg text-gray-300 leading-relaxed">
+                    Sou estudante de Análise e Desenvolvimento de Sistemas, apaixonado por tecnologia e em busca de desenvolver minha carreira na área. Já tive contato com projetos utilizando <span class="text-blue-400">HTML, CSS, JavaScript, React e Node.js,</span> sempre explorando e aprendendo, muitas vezes com apoio de ferramentas e pesquisa. Atualmente, estou focando meus estudos em <span class="text-blue-400">Python,</span> por acreditar que será a melhor base para meu crescimento como desenvolvedor. Busco uma oportunidade de estágio onde eu possa aprender na prática, evoluir junto com a equipe e contribuir de forma dedicada.
+                </p>
+            </div>
+        </section>
+
+        <!-- Seção de Tecnologias -->
+        <section id="tecnologias" class="py-16">
+            <h2 class="text-3xl font-bold text-center text-white mb-12">Tecnologias e Ferramentas</h2>
+            <div class="scroller">
+                <div class="scroller__inner">
+                    <!-- Ícones originais -->
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/w3_html5/w3_html5-icon.svg" alt="HTML5" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">HTML5</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="2">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                    <img src="https://www.vectorlogo.zone/logos/w3_css/w3_css-icon.svg" alt="CSS3" class="h-16 w-16 mb-2">
+                    <h3 class="font-semibold text-lg">CSS3</h3>
+                    <div class="flex items-center mt-2 space-x-3">
+                        <div class="battery" data-level="2">
+                            <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                        </div>
+                        <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                            <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/javascript/javascript-icon.svg" alt="JavaScript" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">JavaScript</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/reactjs/reactjs-icon.svg" alt="React" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">React</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/nodejs/nodejs-icon.svg" alt="Node.js" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">Node.js</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/tailwindcss/tailwindcss-icon.svg" alt="Tailwind CSS" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">Tailwind CSS</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" alt="Python" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">Python</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/git-scm/git-scm-icon.svg" alt="Git" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">Git</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/github/github-icon.svg" alt="GitHub" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">GitHub</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+
+                    <!-- Ícones duplicados para o loop contínuo -->
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/w3_html5/w3_html5-icon.svg" alt="HTML5" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">HTML5</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="2">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                    <img src="https://www.vectorlogo.zone/logos/w3_css/w3_css-icon.svg" alt="CSS3" class="h-16 w-16 mb-2">
+                    <h3 class="font-semibold text-lg">CSS3</h3>
+                    <div class="flex items-center mt-2 space-x-3">
+                        <div class="battery" data-level="2">
+                            <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                        </div>
+                        <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                            <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/javascript/javascript-icon.svg" alt="JavaScript" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">JavaScript</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/reactjs/reactjs-icon.svg" alt="React" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">React</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/nodejs/nodejs-icon.svg" alt="Node.js" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">Node.js</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/tailwindcss/tailwindcss-icon.svg" alt="Tailwind CSS" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">Tailwind CSS</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" alt="Python" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">Python</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/git-scm/git-scm-icon.svg" alt="Git" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">Git</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                    <div class="tech-card bg-gray-800 p-4 rounded-lg flex flex-col items-center justify-start text-center w-56">
+                        <img src="https://www.vectorlogo.zone/logos/github/github-icon.svg" alt="GitHub" class="h-16 w-16 mb-2">
+                        <h3 class="font-semibold text-lg">GitHub</h3>
+                        <div class="flex items-center mt-2 space-x-3">
+                            <div class="battery" data-level="1">
+                                <div class="battery-segment"></div><div class="battery-segment"></div><div class="battery-segment"></div>
+                            </div>
+                            <div class="flex flex-col text-xs text-left text-gray-400 h-[70px] justify-between py-1">
+                                <span>- Avançado</span><span>- Intermediário</span><span>- Iniciante</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Experiência</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção de Projetos -->
+        <section id="projetos" class="py-16">
+            <h2 class="text-3xl font-bold text-center text-white mb-12">Meus Projetos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <!-- Modelo de Projeto -->
+                <div class="project-card rounded-lg overflow-hidden shadow-lg hover:shadow-blue-400/30 transition-shadow duration-300" 
+                     data-images="https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FGestor%20FC%2Fgestor-login.jpg?alt=media&token=71024898-633b-4e22-bd23-de086559bf97,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FGestor%20FC%2Fcriar%C3%A7%C3%A3o%20de%20perfil.jpg?alt=media&token=d553bb47-d6fa-43df-b4da-185dccff4a2c,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FGestor%20FC%2FTELA%20DE%20ESPERA.jpg?alt=media&token=c16d4f1b-e04b-4569-a4ff-02a0c0608057,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FGestor%20FC%2FTELA%20CONFIG.jpg?alt=media&token=deff9260-64fc-4835-a42b-d59874b565c3,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FGestor%20FC%2Fgestor-dashboard.jpg?alt=media&token=3122b76c-55d8-40ce-b9bd-0d12e82d1af9,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FGestor%20FC%2Fgestor-alunos.jpg?alt=media&token=bf4b9548-1242-48d4-909f-169b02246cd1,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FGestor%20FC%2Fgestor-gest%C3%A3ofinanceira.jpg?alt=media&token=6ffb0504-2f7c-40d2-92d4-17d97fe4e337">
+                    <div class="project-image-container">
+                        <img class="w-full h-56 object-cover" src="https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FGestor%20FC%2Fgestor-login.jpg?alt=media&token=71024898-633b-4e22-bd23-de086559bf97" alt="Imagem do projeto">
+                        <div class="gallery-overlay">
+                             <!-- Ícone de lupa -->
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="font-bold text-xl mb-2 text-white">⚽ Gerenciador para Escolinha de Futebol</h3>
+                        <p class="text-gray-400 text-base mb-4">
+                            Sistema web desenvolvido para facilitar a gestão de escolinhas de futebol. Permite controlar alunos, mensalidades e finanças de forma prática, com dashboards interativos e relatórios financeiros.Tecnologias: React, Next.js, Tailwind CSS, Firebase (Firestore e Authentication) e hospedagem na Vercel.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="inline-block bg-blue-500/20 text-blue-300 rounded-full px-3 py-1 text-sm font-semibold">React</span>
+                            <span class="inline-block bg-green-500/20 text-green-300 rounded-full px-3 py-1 text-sm font-semibold">Next.js</span>
+                            <span class="inline-block bg-purple-500/20 text-purple-300 rounded-full px-3 py-1 text-sm font-semibold">Tailwind CSS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card rounded-lg overflow-hidden shadow-lg hover:shadow-blue-400/30 transition-shadow duration-300"
+                    data-images="https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FAluguel%20de%20Quadra%2Fprint-agendamento-confirm.jpg?alt=media&token=a47a9f0c-f1c2-4e84-8243-1e5ee8401ca4,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FAluguel%20de%20Quadra%2Fprint-agendamento-pix.jpg?alt=media&token=88211e9d-df6e-4f1f-a666-c69e3bebc6f0,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FAluguel%20de%20Quadra%2FPrint-agendamento-inicio.jpg?alt=media&token=32eab112-2a51-46fe-b97c-0d12556249fc">
+                    <div class="project-image-container">
+                        <img class="w-full h-56 object-cover" src="https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FAluguel%20de%20Quadra%2FPrint-agendamento-inicio.jpg?alt=media&token=32eab112-2a51-46fe-b97c-0d12556249fc" alt="Imagem do projeto">
+                        <div class="gallery-overlay">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="font-bold text-xl mb-2 text-white">⚽ App de Agendamento para Quadra Society</h3>
+                        <p class="text-gray-400 text-base mb-4">
+                            Aplicação web para gestão de reservas em quadras de futebol society. Permite que clientes visualizem horários disponíveis, realizem pré-reservas e confirmem pagamentos via PIX. Já os administradores contam com painel de controle, gestão de preços, confirmação de agendamentos e integração financeira.Tecnologias: HTML5, JavaScript (ES6+), Tailwind CSS, Firebase Firestore e Vercel..
+                        </p>
+                         <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="inline-block bg-yellow-500/20 text-yellow-300 rounded-full px-3 py-1 text-sm font-semibold">HTML5</span>
+                            <span class="inline-block bg-indigo-500/20 text-indigo-300 rounded-full px-3 py-1 text-sm font-semibold">JavaScript</span>
+                             <span class="inline-block bg-pink-500/20 text-pink-300 rounded-full px-3 py-1 text-sm font-semibold">Tailwind CSS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="project-card rounded-lg overflow-hidden shadow-lg hover:shadow-blue-400/30 transition-shadow duration-300"
+                    data-images="https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FCat%C3%A1logo%20Online%2FPrint-catalogo.jpg?alt=media&token=b576d25a-2f1a-4872-935c-3b826d9f8ce8,https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FCat%C3%A1logo%20Online%2FPrint-catalogo-adm.jpg?alt=media&token=3bef2d92-68ca-4911-babd-2f82d1aa86aa">
+                    <div class="project-image-container">
+                        <img class="w-full h-56 object-cover" src="https://firebasestorage.googleapis.com/v0/b/meu-catalogo-digital-e130c.firebasestorage.app/o/Foto%20dos%20projetos%2FCat%C3%A1logo%20Online%2FPrint-catalogo.jpg?alt=media&token=b576d25a-2f1a-4872-935c-3b826d9f8ce8" alt="Imagem do projeto">
+                         <div class="gallery-overlay">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="font-bold text-xl mb-2 text-white">🛒 Catálogo de Produtos Digitais com Painel Admin</h3>
+                        <p class="text-gray-400 text-base mb-4">
+                            Plataforma web para venda de produtos digitais (como e-books e cursos). Oferece ao cliente um catálogo interativo, responsivo e com opção de compra direta, enquanto o administrador conta com painel seguro para gerenciar produtos com operações de CRUD completo (criar, editar e excluir) e publicação em tempo real. Tecnologias: HTML5, JavaScript (ES6+), Tailwind CSS, Firebase (Firestore, Authentication, Hosting e Storage)..
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="inline-block bg-yellow-500/20 text-yellow-300 rounded-full px-3 py-1 text-sm font-semibold">HTML5</span>
+                            <span class="inline-block bg-indigo-500/20 text-indigo-300 rounded-full px-3 py-1 text-sm font-semibold">JavaScript</span>
+                             <span class="inline-block bg-pink-500/20 text-pink-300 rounded-full px-3 py-1 text-sm font-semibold">Tailwind CSS</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal da Galeria de Imagens -->
+    <div id="gallery-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4">
+        <button id="close-modal" class="absolute top-4 right-4 text-white text-4xl font-bold">&times;</button>
+        <button id="prev-image" class="absolute left-4 text-white text-4xl font-bold">&#8249;</button>
+        <button id="next-image" class="absolute right-4 text-white text-4xl font-bold">&#8250;</button>
+        <div class="max-w-4xl max-h-full">
+            <img id="gallery-image" src="" alt="Imagem do Projeto em tela cheia" class="max-w-full max-h-[90vh] object-contain">
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-8 relative z-10">
+        <p class="text-gray-500">Feito com ❤️ por <span class="text-gray-400">Jardel Feitosa</span></p>
+    </footer>
+
+    <!-- Script para a animação do fundo e galeria -->
+    <script>
+        // Fundo de estrelas
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const numStars = 300;
+        const stars = [];
+
+        for (let i = 0; i < numStars; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 1.5 + 0.5,
+                speed: Math.random() * 0.8 + 0.2
+            });
+        }
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size / 2, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        }
+
+        function updateStars() {
+            stars.forEach(star => {
+                star.y += star.speed;
+                if (star.y > canvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * canvas.width;
+                }
+            });
+        }
+
+        function animateStars() {
+            drawStars();
+            updateStars();
+            requestAnimationFrame(animateStars);
+        }
+        animateStars();
+
+        // Lógica da Galeria
+        const modal = document.getElementById('gallery-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const prevImageBtn = document.getElementById('prev-image');
+        const nextImageBtn = document.getElementById('next-image');
+        const galleryImage = document.getElementById('gallery-image');
+        const projectCards = document.querySelectorAll('.project-card');
+
+        let currentImages = [];
+        let currentIndex = 0;
+
+        function openModal(images, index) {
+            currentImages = images;
+            currentIndex = index;
+            updateModalImage();
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        function updateModalImage() {
+            galleryImage.src = currentImages[currentIndex];
+            prevImageBtn.classList.toggle('hidden', currentImages.length <= 1 || currentIndex === 0);
+            nextImageBtn.classList.toggle('hidden', currentImages.length <= 1 || currentIndex === currentImages.length - 1);
+        }
+
+        projectCards.forEach(card => {
+            const imageContainer = card.querySelector('.project-image-container');
+            if (imageContainer) {
+                imageContainer.addEventListener('click', () => {
+                    const imagesAttr = card.dataset.images;
+                    if (imagesAttr) {
+                        const images = imagesAttr.split(',').map(url => url.trim());
+                        openModal(images, 0);
+                    }
+                });
+            }
+        });
+
+        closeModalBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        prevImageBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateModalImage();
+            }
+        });
+
+        nextImageBtn.addEventListener('click', () => {
+            if (currentIndex < currentImages.length - 1) {
+                currentIndex++;
+                updateModalImage();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!modal.classList.contains('hidden')) {
+                if (e.key === 'Escape') closeModal();
+                if (e.key === 'ArrowLeft') prevImageBtn.click();
+                if (e.key === 'ArrowRight') nextImageBtn.click();
+            }
+        });
+
+    </script>
+</body>
+</html>
 
